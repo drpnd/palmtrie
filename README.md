@@ -208,6 +208,28 @@ Note that this evaluation script requires the following command:
          On successful, the palmtrie_add_data() function returns a value of 0.
          Otherwise, they return a value of -1.
 
+### Deletion
+
+    NAME
+         palmtrie_del_data -- delete an entry from the palmtrie data structure
+
+    SYNOPSIS
+         int
+         palmtrie_del_data(struct palmtrie *palmtrie, addr_t addr, addr_t mask);
+
+    DESCRIPTION
+         The palmtrie_del_data() function deletes an entry specified by a pair
+         of addr and mask arguments from the trie specified by the palmtrie
+         argument.
+
+         For PALMTRIE_PLUS, the deletion is applied to the underlying multibit
+         trie.  The palmtrie_commit() function must be called after the
+         deletion to rebuild the optimized trie.
+
+    RETURN VALUES
+         On successful, the palmtrie_del_data() function returns a value of 0.
+         Otherwise, it returns a value of -1.
+
 ### Lookup
 
     NAME
