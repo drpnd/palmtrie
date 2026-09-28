@@ -106,6 +106,12 @@ int
 palmtrie_add_data(struct palmtrie *palmtrie, addr_t addr, addr_t mask,
                   int priority, u64 data)
 {
+    /* Priority must be non-negative; -1 is reserved as the sentinel value
+       for the lookup result (no match). */
+    if ( priority < 0 ) {
+        return -1;
+    }
+
     switch ( palmtrie->type ) {
     case PALMTRIE_SORTED_LIST:
         return palmtrie_sl_add(palmtrie, addr, mask, priority, (void *)data);
