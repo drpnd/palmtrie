@@ -116,10 +116,13 @@ _delete(struct palmtrie_sorted_list_entry **ent, addr_t addr, addr_t mask)
     /* Not found */
     return NULL;
 }
-void *
+int
 palmtrie_sl_delete(struct palmtrie *palmtrie, addr_t addr, addr_t mask)
 {
-    return _delete(&palmtrie->u.sl.head, addr, mask);
+    if ( NULL != _delete(&palmtrie->u.sl.head, addr, mask) ) {
+        return 0;
+    }
+    return -1;
 }
 
 /*

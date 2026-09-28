@@ -301,22 +301,26 @@ struct palmtrie {
 /* Prototype declarations */
 struct palmtrie * palmtrie_init(struct palmtrie *, enum palmtrie_type);
 int palmtrie_add_data(struct palmtrie *, addr_t, addr_t, int, u64);
+int palmtrie_del_data(struct palmtrie *, addr_t, addr_t);
 u64 palmtrie_lookup(struct palmtrie *, addr_t);
 int palmtrie_commit(struct palmtrie *);
 
 /* in sl.c */
 int palmtrie_sl_add(struct palmtrie *, addr_t, addr_t, int, void *);
 void * palmtrie_sl_lookup(struct palmtrie *, addr_t);
+int palmtrie_sl_delete(struct palmtrie *, addr_t, addr_t);
 int palmtrie_sl_release(struct palmtrie *);
 
 /* in tpt.c */
 int palmtrie_tpt_add(struct palmtrie *, addr_t, addr_t, int, void *);
 void * palmtrie_tpt_lookup(struct palmtrie *, addr_t);
+int palmtrie_tpt_delete(struct palmtrie *, addr_t, addr_t);
 int palmtrie_tpt_release(struct palmtrie *);
 
 /* in mtpt.c */
 int palmtrie_mtpt_add(struct palmtrie_mtpt *, addr_t, addr_t, int, void *);
 void * palmtrie_mtpt_lookup(struct palmtrie *, addr_t);
+int palmtrie_mtpt_delete(struct palmtrie *, addr_t, addr_t);
 int palmtrie_mtpt_release(struct palmtrie *);
 
 /* in popmtpt.c */

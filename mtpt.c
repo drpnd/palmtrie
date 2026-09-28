@@ -511,13 +511,136 @@ palmtrie_mtpt_lookup(struct palmtrie *palmtrie, addr_t addr)
 }
 
 /*
+ * Recompute max_priority of a node from its own priority and descendants
+ */
+static void
+_recompute_max_priority(struct palmtrie_mtpt_node_data *node)
+{
+#if PALMTRIE_PRIORITY_SKIP
+    int max = node->priority;
+    int i;
+    for ( i = 0; i < (1 << PALMTRIE_MTPT_STRIDE); i++ ) {
+        if ( NULL != node->children[i] ) {
+            if ( node->children[i]->max_priority > max ) {
+                max = node->children[i]->max_priority;
+            }
+        }
+    }
+    for ( i = 0; i < (1 << PALMTRIE_MTPT_STRIDE) - 1; i++ ) {
+        if ( NULL != node->ternaries[i] ) {
+            if ( node->ternaries[i]->max_priority > max ) {
+                max = node->ternaries[i]->max_priority;
+            }
+        }
+    }
+    node->max_priority = max;
+#endif
+}
+
+/*
+ * Recursively delete an entry matching the specified addr/mask.
+ * Deletion marks the node as deleted (priority = -1) rather than
+ * freeing it, to avoid dangling backtrack pointers from other nodes.
+ */
+static void *
+_del(struct palmtrie_mtpt_node_data **node, addr_t addr, addr_t mask,
+     int cbit)
+{
+    struct palmtrie_mtpt_node_data **next;
+    void *data;
+    int nbit;
+    int aidx;
+    int midx;
+    int idx;
+    int i;
+
+    if ( NULL == *node ) {
+        return NULL;
+    }
+
+    /* Check if this is a terminal (backtrack) */
+    if ( cbit <= (*node)->bit ) {
+        if ( ADDR_CMP((*node)->addr, addr)
+             && ADDR_CMP((*node)->mask, mask) ) {
+            data = (*node)->data;
+            (*node)->priority = -1;
+            (*node)->data = NULL;
+            _recompute_max_priority(*node);
+            return data;
+        }
+        return NULL;
+    }
+
+    /* Follow the branch (same path as lookup) */
+    aidx = EXTRACTN(addr, (*node)->bit, PALMTRIE_MTPT_STRIDE);
+    midx = EXTRACTN(mask, (*node)->bit, PALMTRIE_MTPT_STRIDE);
+    if ( midx ) {
+        next = NULL;
+        for ( i = 1; i <= PALMTRIE_MTPT_STRIDE; i++ ) {
+            if ( (midx >> (PALMTRIE_MTPT_STRIDE - i)) & 1 ) {
+                idx = ((aidx >> (PALMTRIE_MTPT_STRIDE - i + 1))
+                       | (1 << (i - 1))) - 1;
+                next = &(*node)->ternaries[idx];
+                nbit = (*node)->bit + (PALMTRIE_MTPT_STRIDE - i);
+                break;
+            }
+        }
+        if ( NULL == next ) {
+            return NULL;
+        }
+    } else {
+        next = &(*node)->children[aidx];
+        nbit = (*node)->bit;
+    }
+
+    if ( NULL == *next ) {
+        /* No child - key not in trie */
+        return NULL;
+    } else if ( (*node)->bit <= (*next)->bit ) {
+        /* Backtrack - *next is the terminal node */
+        if ( *next == *node ) {
+            /* Self-reference: key is at *node */
+            if ( ADDR_CMP((*node)->addr, addr)
+                 && ADDR_CMP((*node)->mask, mask) ) {
+                data = (*node)->data;
+                (*node)->priority = -1;
+                (*node)->data = NULL;
+                _recompute_max_priority(*node);
+                return data;
+            }
+        } else {
+            /* Backtrack to ancestor */
+            if ( ADDR_CMP((*next)->addr, addr)
+                 && ADDR_CMP((*next)->mask, mask) ) {
+                data = (*next)->data;
+                (*next)->priority = -1;
+                (*next)->data = NULL;
+                _recompute_max_priority(*next);
+                return data;
+            }
+        }
+        return NULL;
+    }
+
+    /* Recurse into descendant */
+    data = _del(next, addr, mask, nbit);
+    if ( NULL != data ) {
+        _recompute_max_priority(*node);
+    }
+    return data;
+}
+
+/*
  * Delete an entry corresponding to the specified addr/mask
  */
-void *
+int
 palmtrie_mtpt_delete(struct palmtrie *palmtrie, addr_t addr, addr_t mask)
 {
-    /* To be implemented */
-    return NULL;
+    if ( NULL != _del(&palmtrie->u.mtpt.root, addr, mask,
+                      PALMTRIE_ADDR_BITS - PALMTRIE_MTPT_STRIDE) ) {
+        return 0;
+    }
+    return -1;
 }
 
 /*

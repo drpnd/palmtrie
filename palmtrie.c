@@ -153,6 +153,36 @@ palmtrie_lookup(struct palmtrie *palmtrie, addr_t addr)
 }
 
 /*
+ * palmtrie_del_data -- delete an entry with the specified addr/mask from the
+ * trie
+ */
+int
+palmtrie_del_data(struct palmtrie *palmtrie, addr_t addr, addr_t mask)
+{
+    switch ( palmtrie->type ) {
+    case PALMTRIE_SORTED_LIST:
+        return palmtrie_sl_delete(palmtrie, addr, mask);
+    case PALMTRIE_BASIC:
+        return palmtrie_tpt_delete(palmtrie, addr, mask);
+    case PALMTRIE_DEFAULT:
+        return palmtrie_mtpt_delete(palmtrie, addr, mask);
+    case PALMTRIE_PLUS:
+        /* Delete from the underlying mtpt; caller must call
+           palmtrie_commit() to rebuild the optimized trie. */
+        {
+            struct palmtrie tmp;
+            tmp.type = PALMTRIE_DEFAULT;
+            tmp.u.mtpt = palmtrie->u.popmtpt.mtpt;
+            int ret = palmtrie_mtpt_delete(&tmp, addr, mask);
+            palmtrie->u.popmtpt.mtpt = tmp.u.mtpt;
+            return ret;
+        }
+    default:
+        return -1;
+    }
+}
+
+/*
  * palmtrie_commit -- compile an optimized trie by applying incremental updates
  */
 int

@@ -300,7 +300,8 @@ _lookup(struct palmtrie_tpt_node *node, addr_t addr, int bit)
     }
     if ( bit <= node->bit ) {
         /* Backtracked */
-        if ( ADDR_MASK_CMP(addr, node->mask, node->addr, node->mask) ) {
+        if ( ADDR_MASK_CMP(addr, node->mask, node->addr, node->mask)
+             && node->priority >= 0 ) {
             return node;
         } else {
             return NULL;
@@ -389,13 +390,117 @@ palmtrie_tpt_lookup(struct palmtrie *palmtrie, addr_t addr)
 }
 
 /*
+ * Recompute max_priority of a node from its own priority and descendants
+ */
+static void
+_recompute_max_priority(struct palmtrie_tpt_node *node)
+{
+#if PALMTRIE_PRIORITY_SKIP
+    int max = node->priority;
+    if ( NULL != node->left ) {
+        if ( node->left->max_priority > max ) {
+            max = node->left->max_priority;
+        }
+    }
+    if ( NULL != node->center ) {
+        if ( node->center->max_priority > max ) {
+            max = node->center->max_priority;
+        }
+    }
+    if ( NULL != node->right ) {
+        if ( node->right->max_priority > max ) {
+            max = node->right->max_priority;
+        }
+    }
+    node->max_priority = max;
+#endif
+}
+
+/*
+ * Recursively delete an entry matching the specified addr/mask.
+ * Deletion marks the node as deleted (priority = -1) rather than
+ * freeing it, to avoid dangling backtrack pointers from other nodes.
+ */
+static void *
+_del(struct palmtrie_tpt_node **node, addr_t addr, addr_t mask, int cbit)
+{
+    struct palmtrie_tpt_node **next;
+    void *data;
+
+    if ( NULL == *node ) {
+        return NULL;
+    }
+
+    /* Check if this is a terminal (backtrack) */
+    if ( cbit <= (*node)->bit ) {
+        if ( ADDR_CMP((*node)->addr, addr)
+             && ADDR_CMP((*node)->mask, mask) ) {
+            data = (*node)->data;
+            (*node)->priority = -1;
+            (*node)->data = NULL;
+            _recompute_max_priority(*node);
+            return data;
+        }
+        return NULL;
+    }
+
+    /* Follow the branch (same path as lookup) */
+    if ( EXTRACT(mask, (*node)->bit) ) {
+        next = &(*node)->center;
+    } else if ( EXTRACT(addr, (*node)->bit) ) {
+        next = &(*node)->right;
+    } else {
+        next = &(*node)->left;
+    }
+
+    if ( NULL == *next ) {
+        /* No child - key not in trie */
+        return NULL;
+    } else if ( (*node)->bit <= (*next)->bit ) {
+        /* Backtrack - *next is the terminal node */
+        if ( *next == *node ) {
+            /* Self-reference: key is at *node */
+            if ( ADDR_CMP((*node)->addr, addr)
+                 && ADDR_CMP((*node)->mask, mask) ) {
+                data = (*node)->data;
+                (*node)->priority = -1;
+                (*node)->data = NULL;
+                _recompute_max_priority(*node);
+                return data;
+            }
+        } else {
+            /* Backtrack to ancestor */
+            if ( ADDR_CMP((*next)->addr, addr)
+                 && ADDR_CMP((*next)->mask, mask) ) {
+                data = (*next)->data;
+                (*next)->priority = -1;
+                (*next)->data = NULL;
+                _recompute_max_priority(*next);
+                return data;
+            }
+        }
+        return NULL;
+    }
+
+    /* Recurse into descendant */
+    data = _del(next, addr, mask, (*node)->bit);
+    if ( NULL != data ) {
+        _recompute_max_priority(*node);
+    }
+    return data;
+}
+
+/*
  * Delete an entry corresponding to the specified addr/mask
  */
-void *
+int
 palmtrie_tpt_delete(struct palmtrie *palmtrie, addr_t addr, addr_t mask)
 {
-    /* To be implemented */
-    return NULL;
+    if ( NULL != _del(&palmtrie->u.tpt.root, addr, mask,
+                      PALMTRIE_ADDR_BITS - 1) ) {
+        return 0;
+    }
+    return -1;
 }
 
 /*
