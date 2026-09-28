@@ -115,9 +115,18 @@ _add_leaf(struct palmtrie_tpt_node **node, addr_t addr, addr_t mask, int priorit
             }
         }
         if ( bit < 0 ) {
-            /* Same node */
+            /* Same key - update if the new priority is higher */
+            if ( priority > (*node)->priority ) {
+                (*node)->priority = priority;
+                (*node)->data = data;
+#if PALMTRIE_PRIORITY_SKIP
+                if ( priority > (*node)->max_priority ) {
+                    (*node)->max_priority = priority;
+                }
+#endif
+            }
             free(n);
-            return -1;
+            return 0;
         }
         n->bit = bit;
         if ( EXTRACT(mask, bit) ) {

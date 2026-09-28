@@ -172,13 +172,18 @@ _add_leaf(struct palmtrie_mtpt_node_data **node, addr_t addr, addr_t mask,
             }
         }
         if ( bit < -PALMTRIE_MTPT_STRIDE ) {
-            /* Same node */
+            /* Same key - update if the new priority is higher */
+            if ( priority > (*node)->priority ) {
+                (*node)->priority = priority;
+                (*node)->data = data;
+#if PALMTRIE_PRIORITY_SKIP
+                if ( priority > (*node)->max_priority ) {
+                    (*node)->max_priority = priority;
+                }
+#endif
+            }
             free(n);
-            printf("xxx %llx %llx/%llx %llx , %llx %llx/%llx %llx %d xxx",
-                   (*node)->addr.a[0], (*node)->addr.a[1],
-                   (*node)->mask.a[0], (*node)->mask.a[1],
-                   addr.a[0], addr.a[1], mask.a[0], mask.a[1], cbit);
-            return -1;
+            return 0;
         }
         /* Calculate the appropriate stride point */
         if ( mbit < -PALMTRIE_MTPT_STRIDE ) {
@@ -299,7 +304,7 @@ _add_internal(struct palmtrie_mtpt_node_data **node, addr_t addr, addr_t mask,
         n->children[aidx] = *node;
     }
     if ( n->bit == (*node)->bit ) {
-        printf("Error in _add_internal()\n");
+        fprintf(stderr, "Error in _add_internal()\n");
         return -1;
     }
 
