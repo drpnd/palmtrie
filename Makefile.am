@@ -3,7 +3,7 @@
 # All rights reserved.
 #
 
-bin_PROGRAMS = palmtrie_test_basic palmtrie_test_acl palmtrie_eval_lpm palmtrie_eval_acl
+bin_PROGRAMS = palmtrie_test_basic palmtrie_test_acl palmtrie_eval_lpm palmtrie_eval_acl palmtrie_test_adddelete
 
 EXTRA_DIST = README.md run_evaluation.sh tests/linx-rib.20141217.0000-p46.sorted.txt tests/traffic.sfl2 tests/acl-0001.ross tests/acl-0001.tcam tests/acl-0002.tcam tests/acl-1000.tcam tests/acl-1000.ross
 
@@ -22,6 +22,10 @@ palmtrie_eval_lpm_SOURCES = tests/eval_lpm.c
 palmtrie_eval_lpm_LDFLAGS = -static $(top_builddir)/libpalmtrie.la
 palmtrie_eval_lpm_DEPENDENCIES = libpalmtrie.la
 
+palmtrie_test_adddelete_SOURCES = tests/adddelete.c
+palmtrie_test_adddelete_LDFLAGS = -static $(top_builddir)/libpalmtrie.la
+palmtrie_test_adddelete_DEPENDENCIES = libpalmtrie.la
+
 palmtrie_eval_acl_SOURCES = tests/eval_acl.c
 palmtrie_eval_acl_LDFLAGS = -static $(top_builddir)/libpalmtrie.la
 palmtrie_eval_acl_DEPENDENCIES = libpalmtrie.la
@@ -31,6 +35,7 @@ CLEANFILES = *~
 test: all
 	@echo "Testing all..."
 	$(top_builddir)/palmtrie_test_basic
+	$(top_builddir)/palmtrie_test_adddelete
 
 microperf: all
 	@echo "Measuring performance..."
