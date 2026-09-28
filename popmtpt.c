@@ -7,7 +7,6 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <immintrin.h>
 
 /* 64-bit popcnt intrinsic.  To use popcnt instruction in x86-64, the "-mpopcnt"
    option must be specified in CFLAGS. */

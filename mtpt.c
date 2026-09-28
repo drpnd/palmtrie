@@ -8,7 +8,6 @@
 #include <stdlib.h>
 #include <string.h>
 #include <alloca.h>
-#include <immintrin.h>
 
 #define _STACK_DEPTH    64
 
@@ -429,17 +428,6 @@ struct cache {
     int bit;
     int idx;
 };
-static __m128i bitindices[8] = {
-    {0x0000000000000001, 0x0000000300000007},
-    {0x0000000000000001, 0x0000000300000008},
-    {0x0000000000000001, 0x0000000400000009},
-    {0x0000000000000001, 0x000000040000000a},
-    {0x0000000000000002, 0x000000050000000b},
-    {0x0000000000000002, 0x000000050000000c},
-    {0x0000000000000002, 0x000000060000000d},
-    {0x0000000000000002, 0x000000060000000e},
-};
-
 static struct palmtrie_mtpt_node_data *
 _lookup_pfs(struct palmtrie_mtpt_node_data *node, addr_t addr, int bit,
             struct palmtrie_mtpt_node_data *res)
