@@ -14,7 +14,7 @@
 
 #define PALMTRIE_POPMTPT_NR_NODES      (1 << 23)
 
-#define _STACK_DEPTH    64
+#define _STACK_DEPTH    (PALMTRIE_ADDR_BITS / PALMTRIE_MTPT_STRIDE * (PALMTRIE_MTPT_STRIDE + 1) + 1)
 
 /*
  * Check if the  node is compressible or not
@@ -344,8 +344,8 @@ _lookup(struct palmtrie_popmtpt *t, struct palmtrie_popmtpt_node *node,
                         + node->u.inode.ternaries[tmp >> 6];
                     c = &t->nodes.ptr[base];
                     __builtin_prefetch(&c[pidx], 0, 3);
-                    ptrs[nr] = &c[pidx];
-                    nr++;
+                    if ( nr < _STACK_DEPTH ) { ptrs[nr] = &c[pidx];
+                    nr++; }
                 }
             }
         }
@@ -357,8 +357,8 @@ _lookup(struct palmtrie_popmtpt *t, struct palmtrie_popmtpt_node *node,
             base = node->u.inode.tbase + node->u.inode.ternaries[tmp >> 6];
             c = &t->nodes.ptr[base];
             __builtin_prefetch(&c[pidx], 0, 3);
-            ptrs[nr] = &c[pidx];
-            nr++;
+            if ( nr < _STACK_DEPTH ) { ptrs[nr] = &c[pidx];
+            nr++; }
         }
         tmp = (idx >> 0) - 1;
         if ( node->u.inode.bitmap_t[tmp >> 6] &&
@@ -368,8 +368,8 @@ _lookup(struct palmtrie_popmtpt *t, struct palmtrie_popmtpt_node *node,
             base = node->u.inode.tbase + node->u.inode.ternaries[tmp >> 6];
             c = &t->nodes.ptr[base];
             __builtin_prefetch(&c[pidx], 0, 3);
-            ptrs[nr] = &c[pidx];
-            nr++;
+            if ( nr < _STACK_DEPTH ) { ptrs[nr] = &c[pidx];
+            nr++; }
         }
 
         idx = sidx;
@@ -380,8 +380,8 @@ _lookup(struct palmtrie_popmtpt *t, struct palmtrie_popmtpt_node *node,
             base = node->u.inode.cbase + node->u.inode.children[idx >> 6];
             c = &t->nodes.ptr[base];
             __builtin_prefetch(&c[pidx], 0, 3);
-            ptrs[nr] = &c[pidx];
-            nr++;
+            if ( nr < _STACK_DEPTH ) { ptrs[nr] = &c[pidx];
+            nr++; }
         }
 #else
 
@@ -395,8 +395,8 @@ _lookup(struct palmtrie_popmtpt *t, struct palmtrie_popmtpt_node *node,
                           & node->u.inode.bitmap_c[idx >> 6]);
             c = &t->nodes.ptr[node->u.inode.children[idx >> 6]];
             __builtin_prefetch(&c[pidx], 0, 3);
-            ptrs[nr] = &c[pidx];
-            nr++;
+            if ( nr < _STACK_DEPTH ) { ptrs[nr] = &c[pidx];
+            nr++; }
         }
 #endif
         idx = (sidx >> 1) | (1 << (PALMTRIE_MTPT_STRIDE - 1));
@@ -427,8 +427,8 @@ _lookup(struct palmtrie_popmtpt *t, struct palmtrie_popmtpt_node *node,
                                   & node->u.inode.bitmap_t[tmp >> 6]);
                     c = &t->nodes.ptr[node->u.inode.ternaries[tmp >> 6]];
                     __builtin_prefetch(&c[pidx], 0, 3);
-                    ptrs[nr] = &c[pidx];
-                    nr++;
+                    if ( nr < _STACK_DEPTH ) { ptrs[nr] = &c[pidx];
+                    nr++; }
                 }
             }
         }
@@ -439,8 +439,8 @@ _lookup(struct palmtrie_popmtpt *t, struct palmtrie_popmtpt_node *node,
                           & node->u.inode.bitmap_t[tmp >> 6]);
             c = &t->nodes.ptr[node->u.inode.ternaries[tmp >> 6]];
             __builtin_prefetch(&c[pidx], 0, 3);
-            ptrs[nr] = &c[pidx];
-            nr++;
+            if ( nr < _STACK_DEPTH ) { ptrs[nr] = &c[pidx];
+            nr++; }
         }
         tmp = (idx >> 0) - 1;
         if ( node->u.inode.bitmap_t[tmp >> 6] &&
@@ -449,8 +449,8 @@ _lookup(struct palmtrie_popmtpt *t, struct palmtrie_popmtpt_node *node,
                           & node->u.inode.bitmap_t[tmp >> 6]);
             c = &t->nodes.ptr[node->u.inode.ternaries[tmp >> 6]];
             __builtin_prefetch(&c[pidx], 0, 3);
-            ptrs[nr] = &c[pidx];
-            nr++;
+            if ( nr < _STACK_DEPTH ) { ptrs[nr] = &c[pidx];
+            nr++; }
         }
 #else
         TERNARY_CONDITION_BEGIN
@@ -461,8 +461,8 @@ _lookup(struct palmtrie_popmtpt *t, struct palmtrie_popmtpt_node *node,
                               & node->u.inode.bitmap_t[tmp >> 6]);
                 c = &t->nodes.ptr[node->u.inode.ternaries[tmp >> 6]];
                 __builtin_prefetch(&c[pidx], 0, 3);
-                ptrs[nr] = &c[pidx];
-                nr++;
+                if ( nr < _STACK_DEPTH ) { ptrs[nr] = &c[pidx];
+                nr++; }
             }
         }
         TERNARY_CONDITION_END
@@ -475,15 +475,12 @@ _lookup(struct palmtrie_popmtpt *t, struct palmtrie_popmtpt_node *node,
                           & node->u.inode.bitmap_c[idx >> 6]);
             c = &t->nodes.ptr[node->u.inode.children[idx >> 6]];
             __builtin_prefetch(&c[pidx], 0, 3);
-            ptrs[nr] = &c[pidx];
-            nr++;
+            if ( nr < _STACK_DEPTH ) { ptrs[nr] = &c[pidx];
+            nr++; }
         }
 #endif
 
 #endif
-        if ( __builtin_expect(!!(nr >= _STACK_DEPTH), 0) ) {
-            fprintf(stderr, "Fatal error: Stack overflow\n");
-        }
     }
 
     return res;

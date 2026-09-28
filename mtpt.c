@@ -9,7 +9,7 @@
 #include <string.h>
 #include <alloca.h>
 
-#define _STACK_DEPTH    64
+#define _STACK_DEPTH    (PALMTRIE_ADDR_BITS / PALMTRIE_MTPT_STRIDE * (PALMTRIE_MTPT_STRIDE + 1) + 1)
 
 /*
  * Recursively delete the node in a tree
@@ -468,7 +468,7 @@ _lookup_pfs(struct palmtrie_mtpt_node_data *node, addr_t addr, int bit,
 
         /* To search */
         idx = EXTRACTN(addr, node->bit, PALMTRIE_MTPT_STRIDE);
-        if ( NULL != node->children[idx] ) {
+        if ( NULL != node->children[idx] && nr < _STACK_DEPTH ) {
             ptrs[nr] = node->children[idx];
             bits[nr] = node->bit;
             nr++;
@@ -476,15 +476,12 @@ _lookup_pfs(struct palmtrie_mtpt_node_data *node, addr_t addr, int bit,
 
         idx = (idx >> 1) | (1 << (PALMTRIE_MTPT_STRIDE - 1));
         for ( i = 0; i < PALMTRIE_MTPT_STRIDE; i++ ) {
-            if ( NULL != node->ternaries[(idx >> i) - 1] ) {
+            if ( NULL != node->ternaries[(idx >> i) - 1]
+                 && nr < _STACK_DEPTH ) {
                 ptrs[nr] = node->ternaries[(idx >> i) - 1];
                 bits[nr] = node->bit;
                 nr++;
             }
-        }
-
-        if ( nr >= _STACK_DEPTH ) {
-            fprintf(stderr, "Fatal error: Stack overflow\n");
         }
     }
 
