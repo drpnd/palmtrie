@@ -16,9 +16,9 @@ typedef uint64_t u64;
 
 /* 512-bit addressing */
 #if defined(PALMTRIE_SHORT) && PALMTRIE_SHORT
-typedef struct { u32 g; u64 a[2]; } __attribute__ ((packed)) addr_t;
-#define PALMTRIE_ADDR_BITS     480
-#define PALMTRIE_ADDR_ZERO     {0, {0, 0}}
+typedef struct { u32 g; u64 a[2]; u32 pad; } __attribute__ ((packed)) addr_t;
+#define PALMTRIE_ADDR_BITS     128
+#define PALMTRIE_ADDR_ZERO     {0, {0, 0}, 0}
 
 #define ADDR_MASK(addr, mask) do {              \
         (addr).a[0] &= ~(mask).a[0];            \
